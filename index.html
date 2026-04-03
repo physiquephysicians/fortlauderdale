@@ -1303,26 +1303,38 @@
     item.classList.toggle('checked');
   }
 
-  // Dynamic deposit banner
-  const DEPOSIT_DATE = new Date('2026-04-03');
-  const DEPOSIT_END = new Date('2026-04-03T23:59:59');
-  const todayStart = new Date(); todayStart.setHours(0,0,0,0);
-  const depositDay = new Date('2026-04-03'); depositDay.setHours(0,0,0,0);
-  const daysLate = Math.floor((todayStart - depositDay) / (1000 * 60 * 60 * 24));
+  // Dynamic deposit banner — timezone-safe local date comparison
+  const now = new Date();
+  const todayY = now.getFullYear(), todayM = now.getMonth(), todayD = now.getDate();
+  const deadlineY = 2026, deadlineM = 3, deadlineD = 3; // April 3 (month 0-indexed)
+
+  const todayNum = todayY * 10000 + todayM * 100 + todayD;
+  const deadlineNum = deadlineY * 10000 + deadlineM * 100 + deadlineD;
+
+  let daysLate;
+  if (todayNum < deadlineNum) {
+    daysLate = -1; // before deadline
+  } else if (todayNum === deadlineNum) {
+    daysLate = 0; // due today
+  } else {
+    const todayMid = new Date(todayY, todayM, todayD);
+    const deadlineMid = new Date(deadlineY, deadlineM, deadlineD);
+    daysLate = Math.floor((todayMid - deadlineMid) / (1000 * 60 * 60 * 24));
+  }
 
   const banner = document.getElementById('urgentBanner');
-  const urgentBadge = document.querySelectorAll('.urgent-badge');
+  const urgentBadges = document.querySelectorAll('.urgent-badge');
   const urgentBoxes = document.querySelectorAll('.urgent-box');
 
-  if (daysLate === 0) {
-    // April 3 - due today
+  if (daysLate === -1) {
+    // before deadline — keep "due tomorrow" as-is
+  } else if (daysLate === 0) {
     banner.innerHTML = '⚡ <strong>Remaining deposit of $425 USD ($579 CAD) is due TODAY — Friday, April 3rd</strong>';
     urgentBoxes.forEach(el => el.querySelector('p').innerHTML = '⚡ <strong>Your remaining balance is due TODAY, April 3, 2026.</strong> You can bundle your Athleisure order into this payment too.');
-  } else if (daysLate > 0) {
-    // April 4+ - days late
+  } else {
     banner.style.background = 'linear-gradient(90deg, #8b1a1a, #6b1010)';
     banner.innerHTML = `🚨 <strong>Your remaining deposit is ${daysLate} day${daysLate > 1 ? 's' : ''} late — please send payment ASAP</strong>`;
-    urgentBadge.forEach(el => { el.textContent = `${daysLate}d Late`; });
+    urgentBadges.forEach(el => { el.textContent = `${daysLate}d Late`; });
     urgentBoxes.forEach(el => el.querySelector('p').innerHTML = `🚨 <strong>Your remaining balance is ${daysLate} day${daysLate > 1 ? 's' : ''} overdue.</strong> Please send $425 USD ($579 CAD) as soon as possible using the payment details below.`);
   }
 
